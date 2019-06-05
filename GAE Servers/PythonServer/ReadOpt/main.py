@@ -1,5 +1,6 @@
 # https://cloud.google.com/endpoints/docs/frameworks/python/get-started-frameworks-python
 import json
+import logging
 
 import webapp2
 from google.appengine.ext import ndb
@@ -30,6 +31,7 @@ class StepRecord(ndb.Model):
     h21 = ndb.IntegerProperty(default=0, indexed=False)
     h22 = ndb.IntegerProperty(default=0, indexed=False)
     h23 = ndb.IntegerProperty(default=0, indexed=False)
+    total = ndb.IntegerProperty(default=0, indexed=False)
 
     def sum(self):
         return sum([getattr(self, name) for name in self._properties])
@@ -49,9 +51,16 @@ class UpdateHandler(webapp2.RequestHandler):
 
         update_record_key = ndb.Key(UpdateRecord, userID)
         hour_property = 'h' + hour
+        step_total = 'total'
         unique_key = userID + '#' + day
         step_record_key = ndb.Key(StepRecord, unique_key)
         update_record, step_record = ndb.get_multi([update_record_key, step_record_key])
+        try:
+            previous_step_count = getattr(step_record, hour_property, step)
+            if previous_step_count and previous_step_count > 0:
+                setattr(step_record, step_total, step_record.total - previous_step_count)
+        except:
+            previous_step_count = 0
         batch = []
         most_recent_day = int(update_record.mostRecentDay) if update_record else -1
         if most_recent_day < int(day):
@@ -60,6 +69,7 @@ class UpdateHandler(webapp2.RequestHandler):
         if step_record is None:
             step_record = StepRecord(key=step_record_key)
         setattr(step_record, hour_property, step)
+        setattr(step_record, step_total, step_record.total + step)
         batch.append(step_record)
         ndb.put_multi(batch)
 
@@ -75,7 +85,7 @@ class CurrentDayHandler(webapp2.RequestHandler):
         day = update_record.mostRecentDay
         step_record_key = ndb.Key(StepRecord, userID + '#' + day)
         step_record = step_record_key.get()
-        self.response.write('Total step count on day {} for {} is {}'.format(day, userID, step_record.sum()))
+        self.response.write('Total step count on day {} for {} is {}'.format(day, userID, step_record.total))
 
 
 class SingleDayHandler(webapp2.RequestHandler):
@@ -91,7 +101,7 @@ class SingleDayHandler(webapp2.RequestHandler):
             else:
                 self.response.write('no data for day {} of {}'.format(day, userID))
         else:
-            self.response.write('Total step count on day {} for {} is {}'.format(day, userID, step_record.sum()))
+            self.response.write('Total step count on day {} for {} is {}'.format(day, userID, step_record.total))
 
 
 class RangeDayHandler(webapp2.RequestHandler):
