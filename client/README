@@ -1,0 +1,6 @@
+to run:
+
+Main class:
+  com.neu.wearableloadtester.TestRunner
+Command line argument is property file loadtest.properties, e.g. on Windows 10
+  C:\\Users\\Public\\loadtest.properties
