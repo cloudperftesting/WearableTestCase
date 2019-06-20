@@ -12,6 +12,7 @@ public class TestConfiguration {
     private String targetURL;
     private int numRequestsPerHour;
     private int dayNum; 
+    private String outputPath;
 
     /**
      * Constructor - TODO add docs
@@ -22,7 +23,7 @@ public class TestConfiguration {
      * @param numResquests
      * @param dayNum 
      */
-    public TestConfiguration(String testName, int maxThreads, int keySpaceSize, String url, int numRequests, int dayNum){
+    public TestConfiguration(String testName, int maxThreads, int keySpaceSize, String url, int numRequests, int dayNum, String outputPath){
         // TODO add precondition checks
         this.testName = testName;
         this.maxThreads = maxThreads;
@@ -30,6 +31,7 @@ public class TestConfiguration {
         this.targetURL = url;
         this.numRequestsPerHour = numRequests;
         this.dayNum = dayNum;
+        this.outputPath = outputPath;
         
     }
     /**
@@ -73,5 +75,14 @@ public class TestConfiguration {
     public int getDayNum() {
         return dayNum;
     }
+
+    /**
+     * @return the outputPath
+     */
+    public String getOutputPath() {
+        return outputPath;
+    }
+
+
 
 }

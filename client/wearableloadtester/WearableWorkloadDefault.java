@@ -46,9 +46,8 @@ public class WearableWorkloadDefault implements Workload{
     /** Default file names for results output files
      * TODO refactor to make paths configurable through properties file
      */
-    private final static String DEFAULT_PATH = "c:\\Users\\Public\\nodeServer-RO\\";
-    //private final static String DEFAULT_PATH = "c:\\Users\\Public\\PyServer\\";
-    //private final static String DEFAULT_PATH = "c:\\Users\\Public\\GoServer\\";
+   // private final static String DEFAULT_PATH = "c:\\Users\\Public\\nodeServer-RO\\";
+
     // start and end values for each phase TODO improve by combining with testPhases map
     private final int[] testIntervals = {1, 2, 5, 19, 23, 25};
     //private final int[] testIntervals = {1, 4, 7, 10, 13, 16};
@@ -68,6 +67,8 @@ public class WearableWorkloadDefault implements Workload{
     private String baseURL;
     /** Test name for constructing output files */
     private String testName;
+    // Path to write output files
+    private String outputPath;
     /** reusable connection to pass to client threads */
     CloseableHttpClient httpClient;
     /** number of phases for the test */
@@ -118,7 +119,7 @@ public class WearableWorkloadDefault implements Workload{
         this.numRequestsPerHour = testConfig.getNumRequestsPerHour();
         this.dayNum = testConfig.getDayNum();
         this.testName = testConfig.getTestName();
-        
+        this.outputPath = testConfig.getOutputPath() ;
         numPhases = testPhases.size();
    
         
@@ -133,8 +134,8 @@ public class WearableWorkloadDefault implements Workload{
         int endOfTestMarker = -1;
         
         //start the results processing threads. One for GETs and one for POSTSs with unique output file names
-        String putFileName = DEFAULT_PATH + testName + "-POSTraw.csv";
-        String getFileName = DEFAULT_PATH + testName + "-GETraw.csv";
+        String putFileName = outputPath + System.getProperty("file.separator") + testName + "-POSTraw.csv";
+        String getFileName = outputPath + System.getProperty("file.separator") + testName + "-GETraw.csv";
         Thread resultsProcessingThreadPUT = new Thread (new ResultsProcessingThread( resultsQPOST , endOfTestMarker, putFileName));
         resultsProcessingThreadPUT.start();
         Thread resultsProcessingThreadGET = new Thread (new ResultsProcessingThread( resultsQGET , endOfTestMarker, getFileName));
@@ -188,8 +189,8 @@ public class WearableWorkloadDefault implements Workload{
         
        // String sortedPUTFile = this.SortOutputFile(putFileName, "-POST-SORTED.csv");
         // String sortedGETFile = this.SortOutputFile(getFileName, "-GET-SORTED.csv");
-        String resultsFilePOST = DEFAULT_PATH + testName + "POST-RESULTS.csv";
-        String resultsFileGET = DEFAULT_PATH + testName + "GET-RESULTS.csv";
+        String resultsFilePOST = outputPath + System.getProperty("file.separator") +testName + "POST-RESULTS.csv";
+        String resultsFileGET = outputPath + System.getProperty("file.separator") + testName + "GET-RESULTS.csv";
         ResultsProcessor results = new CSVResultsProcessor();
         // results.processResults(sortedPUTFile, resultsFilePUT);
         // results.processResults(sortedGETFile, resultsFileGET);
@@ -247,7 +248,7 @@ public class WearableWorkloadDefault implements Workload{
         CSVReader reader;
         CSVWriter writer;
         // create file name with appropriate name to distinguish from raw test output
-        String sortedFileName = DEFAULT_PATH + testName + fileNameExtension;;
+        String sortedFileName = outputPath + System.getProperty("file.separator")+  testName + fileNameExtension;;
         
         List<String[]> lines = new ArrayList<>();
         List <RequestData> results = new ArrayList<>();

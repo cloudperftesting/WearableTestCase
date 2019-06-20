@@ -21,6 +21,7 @@ public class TestRunner {
     private final static String WORKLOAD_PACKAGE_NAME = "com.neu.wearableloadtester.";
     private final static String DEFAULT_KEY_SPACE_SIZE = "10000";
     private final static String DEFAULT_REQUESTS_PER_ITERATION = "1000" ;
+
     /** Application root URL. TO DO make configurable through properties file */
  //   private final static String BASE_URL = "https://pyserver-208423.appspot.com/";
     private final static String BASE_URL = "https://pyserver2-neu.appspot.com/";
@@ -50,6 +51,9 @@ public class TestRunner {
     // terget URL for test
     private String baseURLProp;
     
+    // location to write output files
+    private String outputFilesDir;
+    
     // Implements the specific test scenario defined by testName
     private Workload testScenario;
     
@@ -76,14 +80,18 @@ public class TestRunner {
         // Get test configuration parameters from properties file
         testConfig = GetTestSpecification (args);
          
-        System.out.println("Config is " + testClassName + " max threads " + maxThreads + " keySPaceSoze " + keySpaceSize + " Iterations: " + numRequestsPerHour) ;
+        System.out.println("Test Configuration is: " + testClassName + System.lineSeparator() +
+                            "max threads: " + maxThreads + System.lineSeparator() +
+                            "test URL " + baseURLProp + System.lineSeparator() +
+                            "keySPaceSoze " + keySpaceSize + System.lineSeparator() +
+                            "Iterations: " + numRequestsPerHour + System.lineSeparator() +
+                            "Output Path: " + outputFilesDir) ;
         // instantiate the specified Workload object
         Object obj = this.CreateWorkloadInstance(testClassName);
         testScenario = (Workload) obj; 
         
         // run the test
-        //testScenario.Initialize(maxThreads, keySpaceSize, BASE_URL, numRequestsPerHour, dayNum);
-        System.out.println("URL: " + baseURLProp);
+
         testScenario.Initialize(testConfig);
         testScenario.Run();
         testScenario.Terminate();
@@ -125,12 +133,14 @@ public class TestRunner {
             numRequestsPerHour = Integer.parseInt(configFile.getProperty("numRequestsPerIteration", DEFAULT_REQUESTS_PER_ITERATION));
             dayNum = Integer.parseInt(configFile.getProperty("dayNumber", DEFAULT_DAYNUM));
             baseURLProp = configFile.getProperty("baseURL", BASE_URL);
+            // use current working directory if output path not specified
+            outputFilesDir = configFile.getProperty("outputFileLocation", System.getProperty("user.dir"));
                  
          } catch (NumberFormatException ex) {
              System.err.println("Invalid property format - must be an integer");
          }
 
-         return new TestConfiguration(testName, maxThreads,keySpaceSize, baseURLProp, numRequestsPerHour, dayNum );
+         return new TestConfiguration(testName, maxThreads,keySpaceSize, baseURLProp, numRequestsPerHour, dayNum, outputFilesDir );
          
      }
      
