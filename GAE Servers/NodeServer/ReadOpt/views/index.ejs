@@ -1,0 +1,20 @@
+<html>
+<body>
+    <h1>Usage</h1>
+    <p>To create/update a step count. Endpoint:/{userID}/{day}/{hour}/{step} Method:POST</p>
+    e.g. /user1/1/0/42
+    <p>To retrieve the step count sum for the latest day in the database. Endpoint:/current/{userID} Method:GET</p>
+    e.g. /current/user1
+    <p>To retrieve the step count sum for a single day. Endpoint:/single/{userID}/{day} Method:GET</p>
+    e.g. /single/user1/1
+    <p>To retrieve the step count sum for a range of days. Endpoint:/range/{userID}/{start_day}/{day_number} Method:GET</p>
+    e.g. /range/user1/1/3, start day must be earier than the latest day in the database
+    <p>To empty the database. Endpoint:/delete Method:DELETE</p>
+    <br />
+    <p>userID: string e.g. user1, user2</p>
+    <p>day, start_day, day_number: positive integer number</p>
+    <p>hour: select an integer from 0 to 23</p>
+    <p>step: non-negative integer number</p>
+    <br />
+</body>
+</html>
