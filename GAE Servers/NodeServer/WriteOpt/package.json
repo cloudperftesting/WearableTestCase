@@ -1,0 +1,22 @@
+{
+  "name": "write",
+  "version": "1.0.0",
+  "description": "",
+  "main": "writeopt.js",
+  "scripts": {
+    "start": "node writeopt.js",
+    "dev": "nodemon writeopt.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/connect-datastore": "^3.0.0",
+    "@google-cloud/datastore": "^4.1.0",
+    "@google-cloud/storage": "^2.5.0",
+    "ejs": "^2.6.1",
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.1"
+  }
+}
