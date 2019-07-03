@@ -12,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Reads and processes a results file written by CSVResultsProcessor class
+ * Reads and processes a results file written by CSVResultsWriter class
  * sorts the file if needed
  * @author igortn
  */
