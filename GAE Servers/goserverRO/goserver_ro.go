@@ -68,10 +68,10 @@ func registerHandlers(){
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	//Make a subrouter for post methods
-	router.GET("/single/:userId/:day/", getDayStepsHandler)
+	router.GET("/single/:userId/:day", getDayStepsHandler)
 	router.GET("/current/:userId",getCurrentDayHandler)
-	router.GET("/range/:userId/:startDay/:numDays/", getRangeDaysHandler)
-	router.POST("/:userId/:day/:hour/:steps/", updateHandler)
+	router.GET("/range/:userId/:startDay/:numDays", getRangeDaysHandler)
+	router.POST("/:userId/:day/:hour/:steps", updateHandler)
 	//router.POST("/delete", deleteHandler)
 	// [START request_logging]
 	// Delegate all of the HTTP routing and serving to the gorilla/mux router.
