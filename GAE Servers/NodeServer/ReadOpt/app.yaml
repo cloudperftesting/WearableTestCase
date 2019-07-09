@@ -11,6 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# use "gcloud app update --no-split-health-checks" to turn off update split health checks
 # [START runtime]
 runtime: nodejs10
+health_check:
+  enable_health_check: False
+
 # [END runtime]
+
