@@ -1,0 +1,12 @@
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /.*
+  script: main.app
+
+automatic_scaling:
+  target_cpu_utilization: 0.7
+  min_pending_latency: 30ms  
+  max_pending_latency: 30ms
