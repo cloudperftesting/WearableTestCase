@@ -14,7 +14,7 @@ public interface ResultsWriter {
     
     public void initialize(String outFileName);
     
-    public void writeResultsBlock(ThreadRequestLatencies results);
+    public int writeResultsBlock(ThreadRequestLatencies results);
     
     public void terminate();
     

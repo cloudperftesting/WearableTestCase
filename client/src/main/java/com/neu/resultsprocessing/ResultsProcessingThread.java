@@ -44,16 +44,19 @@ public class ResultsProcessingThread implements Runnable {
         
     }
     /*****************************************************************************
-     * Pulls results from blocking queue and writes persists them 
+     * Pulls results from blocking queue and  persists them 
      * Terminates when it receives an endOfTest marker
      */
     public void run() {
         ThreadRequestLatencies latencies;
-        
+        int retriesTotal = 0;
+        int totalLines = 0;
         try {   
                 latencies = resultsQIn.take();
                 while (latencies.getThreadID() != endOfTest) {
-                    writeOutput.writeResultsBlock(latencies);
+                    retriesTotal += latencies.getRetries();
+                    int lines = writeOutput.writeResultsBlock(latencies);
+                    totalLines += lines ; 
                     latencies = resultsQIn.take();
                 }    
             } 
@@ -61,7 +64,7 @@ public class ResultsProcessingThread implements Runnable {
             Thread.currentThread().interrupt();
         }
         
-        System.out.println("Results Processing thread terminating");
+        System.out.println("Results Processing thread terminating: lines processes = " + totalLines+ " - retries = " + retriesTotal);
         writeOutput.terminate();
     }
             

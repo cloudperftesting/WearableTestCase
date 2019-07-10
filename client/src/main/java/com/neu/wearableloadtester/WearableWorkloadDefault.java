@@ -49,7 +49,7 @@ public class WearableWorkloadDefault implements Workload{
    // private final static String DEFAULT_PATH = "c:\\Users\\Public\\nodeServer-RO\\";
 
     // start and end values for each phase TODO improve by combining with testPhases map
-    private final int[] testIntervals = {1, 2, 5, 19, 23, 25};
+    private final int[] testIntervals = {0, 1, 4, 20, 22, 24};
     //private final int[] testIntervals = {1, 4, 7, 10, 13, 16};
     /** Names for 5 test phases */
     private enum TESTPHASE { WARMUP, GROWTH, PEAK, SHRINK, COOLDOWN;} 
@@ -134,10 +134,10 @@ public class WearableWorkloadDefault implements Workload{
         int endOfTestMarker = -1;
         
         //start the results processing threads. One for GETs and one for POSTSs with unique output file names
-        String putFileName = outputPath + System.getProperty("file.separator") + testName + "-POSTraw.csv";
+        String postFileName = outputPath + System.getProperty("file.separator") + testName + "-POSTraw.csv";
         String getFileName = outputPath + System.getProperty("file.separator") + testName + "-GETraw.csv";
-        Thread resultsProcessingThreadPUT = new Thread (new ResultsProcessingThread( resultsQPOST , endOfTestMarker, putFileName));
-        resultsProcessingThreadPUT.start();
+        Thread resultsProcessingThreadPOST= new Thread (new ResultsProcessingThread( resultsQPOST , endOfTestMarker, postFileName));
+        resultsProcessingThreadPOST.start();
         Thread resultsProcessingThreadGET = new Thread (new ResultsProcessingThread( resultsQGET , endOfTestMarker, getFileName));
         resultsProcessingThreadGET.start();
         
@@ -195,7 +195,7 @@ public class WearableWorkloadDefault implements Workload{
         // results.processResults(sortedPUTFile, resultsFilePUT);
         // results.processResults(sortedGETFile, resultsFileGET);
         results.processResultsUnsorted(getFileName, resultsFileGET);
-        results.processResultsUnsorted(putFileName, resultsFilePOST);
+        results.processResultsUnsorted(postFileName, resultsFilePOST);
         System.out.println ("+++Test Complete+++");
         
     }

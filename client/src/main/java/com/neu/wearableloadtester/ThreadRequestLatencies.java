@@ -13,6 +13,7 @@ public class ThreadRequestLatencies {
     
     /** thread id that generates results */ 
     private long threadID; 
+    private int retries;
     /** Array to hold individual request latencies */
     private ArrayList <RequestData> latencies = new ArrayList <> ();
     
@@ -74,6 +75,24 @@ public class ThreadRequestLatencies {
      */
     public ArrayList<RequestData> getEntries(){
         return latencies;
+    }
+    
+    public int size() {
+        return latencies.size();
+    }
+
+    /**
+     * @return the retries
+     */
+    public int getRetries() {
+        return retries;
+    }
+
+    /**
+     * @param retries the retries to set
+     */
+    public void setRetries(int retries) {
+        this.retries = retries;
     }
     
 }

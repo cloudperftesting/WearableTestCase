@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 /**
@@ -28,6 +29,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
  */
 public class GetThread  implements Runnable{
     
+    private static final int NUMRETRIES = 5;
     // queue to write results to
     private final BlockingQueue<ThreadRequestLatencies> resultsOutQ;
     // object to accumulate test results in
@@ -65,7 +67,7 @@ public class GetThread  implements Runnable{
      */
     public void run() {
         
-
+        int retries = 0; 
         for (int hour= testInfo.getStartPhase(); hour < testInfo.getEndPhase(); hour++) {
             results = new ThreadRequestLatencies(Thread.currentThread().getId()); 
             // CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -83,50 +85,85 @@ public class GetThread  implements Runnable{
                             + Integer.toString(user) ;
                 HttpGet httpGet = new HttpGet(requestURL);
                 
-                // send http request and prcoess results
-                CloseableHttpResponse response = null;
- 
-                try {
-                    long startTime = System.currentTimeMillis();
-                    response = httpClient.execute(httpGet);
-                    // get the response body as an array of bytes
-                    long endTime = System.currentTimeMillis();
-                    results.addEntry(startTime, "GET", response.getStatusLine().getStatusCode(), endTime - startTime);
-
-                    // ensure response is fully consumed
-                    HttpEntity entity2 = response.getEntity();                
-                    EntityUtils.consume(entity2);
-                    //System.out.println("Get response consumed");
-                   
-                }  catch ( IOException ex) {
+                retries += sendRequestWithRetries (requestURL, NUMRETRIES);            
+                
+            }
                     
-                        //Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
-                        //long endTime = System.currentTimeMillis();
-                        // results.addEntry(startTime, "GET", 503, endTime - startTime);
-                        System.out.println("GET error: " + ex.getMessage());
-               /* }  catch (ClientProtocolException ex) {
-                    // TO DO Handle protocol errors */
-                } 
-            
-                finally {
-                    try {
-                        if (response != null) {
-                            response.close();
-                        }  
-                    } catch (IOException ex) {
-                        Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }    
-             } // end inner for loop
-            
             // send results for processing asynchrounously and close connection
+            results.setRetries(retries); 
             resultsOutQ.add(results);
             
-                //httpClient.close();
+               
     
             
         } // end outer for loop
        // System.out.println("+++GET Terminating+++");
     }
+    
+      private int sendRequestWithRetries(String requestURL, int maxAttempts) {
+         
+        
+         int attempts = 0; 
+         boolean success = false;
+         int backOff = 1 ;
+         int HttpResponseCode = 0;
+         long startTime = 0;
+         
+         // create request to send
+         HttpGet httpGet = new HttpGet (requestURL);
+         
+         while (attempts < maxAttempts && !success) {
+             
+              CloseableHttpResponse response = null;
+                
+              try {
+                    startTime = System.currentTimeMillis();
+                    // send request 
+                    response = httpClient.execute(httpGet);
+                    long endTime = System.currentTimeMillis();
+                    HttpResponseCode = response.getStatusLine().getStatusCode();
+                    
+                    // blunt error handling - we just want success!
+                    if (HttpResponseCode >= 200 && HttpResponseCode < 300) {
+                        results.addEntry(startTime, "GET", response.getStatusLine().getStatusCode(), endTime - startTime);
+                        //System.out.println("Response code: " + response.getStatusLine());
+                        HttpEntity entity2 = response.getEntity();
+                        // do something useful with the response body
+                        // and ensure it is fully consumed
+                        EntityUtils.consume(entity2);
+                        success = true;
+                    } else {
+                        // we sleep and retry 
+                        attempts++;
+                        Thread.sleep(backOff * attempts);
+                       //  System.out.println("GET error: " + HttpResponseCode + " retry "  +  attempts);
+                    }
+                   
+                }  catch (IOException ex) {
+                        long endTime = System.currentTimeMillis();
+
+                        System.out.println("GET error: "  + ex.getMessage());
+                        // Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (InterruptedException ex) {      
+                        Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
+             }      
+                finally {
+                    try {
+                        if (response != null) {
+                            response.close();
+                        }
+                            
+                        
+                    } catch (IOException ex) {
+                        Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }    
+             } 
+             if (!success) {
+                 System.out.println("GET error: Failed after max retries in test phase " + testInfo.getEndPhase() + " URL " + requestURL );
+                 results.addEntry(startTime, "GET", HttpResponseCode, 0);
+             }
+             return attempts;
+         }
     
 }

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 /**
  * Thread to issue POST requests to /userN/dayNum/HourNum/steps endpoint.
  * Number of requests to issue and user key range to select randomly from are passed in to constructor
@@ -28,13 +29,17 @@ import java.util.logging.Logger;
  */
 public class PostThread  implements Runnable{
     
+    // how many times to retry a request
+    private static final int NUMRETRIES = 5;
+   
     private final BlockingQueue<ThreadRequestLatencies> resultsOutQ;
     private CloseableHttpClient httpClient;
       
     private ThreadRequestLatencies results;
     private TestPhaseSpecification testInfo;
     private CountDownLatch doneSignal;
-    /*********************************************************************************
+    
+      /*********************************************************************************
      * 
      * @param resultsOut: queue to write results to
      *      pre: not null
@@ -65,15 +70,15 @@ public class PostThread  implements Runnable{
     public void run() {
           //System.out.println("POST thread starting: Start phase: " + testInfo.getStartPhase() + " End: " + testInfo.getEndPhase() + " Iterations: " + testInfo.getNumRequestsPerIteration());
         long threadID = Thread.currentThread().getId();
-        long startTime = 0;
+
+        int retries = 0;
         for (int hour= testInfo.getStartPhase(); hour < testInfo.getEndPhase(); hour++) {
             results = new ThreadRequestLatencies(threadID); 
             
-            
+  
+                        
             for (int request = 0; request < testInfo.getNumRequestsPerIteration(); request++) {
-                
-                
-                
+                                     
                 int user = ThreadLocalRandom.current().nextInt(1, testInfo.getKeySpaceSize());
                 int steps = ThreadLocalRandom.current().nextInt(0, testInfo.getStepRange());
                 String requestURL = testInfo.getBaseURL() 
@@ -84,55 +89,103 @@ public class PostThread  implements Runnable{
                             + Integer.toString(steps) ;
  
                 HttpPost httpPost = new HttpPost(requestURL);
-
-                CloseableHttpResponse response = null;
                 
-                try {
-                    startTime = System.currentTimeMillis();
-                    response = httpClient.execute(httpPost);
-                    long endTime = System.currentTimeMillis();
-                    results.addEntry(startTime, "POST", response.getStatusLine().getStatusCode(), endTime - startTime);
-                    //System.out.println("Response code: " + response.getStatusLine());
-                    HttpEntity entity2 = response.getEntity();
-                    // do something useful with the response body
-                    // and ensure it is fully consumed
-                    EntityUtils.consume(entity2);
-                   
-                }  catch (IOException ex) {
-                        long endTime = System.currentTimeMillis();
-                        results.addEntry(startTime, "POST", 503, endTime - startTime);
-                        System.out.println("POST error: " + ex.getMessage());
-                        // Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
-                }      
-                finally {
-                    try {
-                        if (response != null) {
-                            response.close();
-                        }
-                            
-                        
-                    } catch (IOException ex) {
-                        Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }    
-             } // end inner for loop
+              
+                retries += sendRequestWithRetries (requestURL, NUMRETRIES) ;
+            } // end for
             
-            // send results for processing asynchrounously
-            
+            if (results.size() != testInfo.getNumRequestsPerIteration()) {
+                 System.out.println("POST Invariant broken: only " + results.size() + " recorded");
+            }
+            results.setRetries (retries);
             resultsOutQ.add(results);
-            /*try {
-                httpclient.close();
-            } catch (IOException ex) {
-                Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
-            } */
+
             
         } // end outer for loop
         
+
         
         doneSignal.countDown();
        // System.out.println("+++POST Terminating+++"+ "Start phase: " + testInfo.getStartPhase() + " End: " + testInfo.getEndPhase() + " Iterations: " + testInfo.getNumRequestsPerIteration());
 
     
     }
+        
+        
+    /*
+        send supplied URL and retry up to numRetries times if don't receive a 2xx response
+        requestURL - valid URL, not null
+        maxAttempts - > 0
+    */
+    private int sendRequestWithRetries(String requestURL, int maxAttempts) {
+         
+        
+         int attempts =0; 
+         boolean success = false;
+         int backOff = 1 ;
+         int HttpResponseCode = 0;
+         long startTime = 0;
+         
+         // create request to send
+         HttpPost httpPost = new HttpPost(requestURL);
+         // start timer - request latency includes retries
+         startTime = System.currentTimeMillis();
+         while (attempts < maxAttempts && !success) {
+             
+              CloseableHttpResponse response = null;
+                
+              try {
+                    
+                    // send request 
+                    response = httpClient.execute(httpPost);
+                    long endTime = System.currentTimeMillis();
+                    HttpResponseCode = response.getStatusLine().getStatusCode();
+                    
+                    // blunt error handling - we just want success!
+                    if (HttpResponseCode >= 200 && HttpResponseCode < 300) {
+                        results.addEntry(startTime, "POST", response.getStatusLine().getStatusCode(), endTime - startTime);
+                        //System.out.println("Response code: " + response.getStatusLine());
+                        HttpEntity entity2 = response.getEntity();
+                        // do something useful with the response body
+                        // and ensure it is fully consumed
+                        EntityUtils.consume(entity2);
+                        success = true;
+                    } else {
+                        // we sleep and retry 
+                        attempts++;
+                        Thread.sleep(backOff * attempts);
+                       //  System.out.println("POST error: " + HttpResponseCode + " retry "  +  attempts);
+                    }
+                   
+                }  catch (IOException ex) {
+                        long endTime = System.currentTimeMillis();
+
+                        System.out.println("POST error: "  + ex.getMessage());
+                        // Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (InterruptedException ex) {      
+                        Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
+                }      
+                finally {
+                    try {
+                        if (response != null) {
+                            response.close();
+                        }                       
+                    } catch (IOException ex) {
+                        Logger.getLogger(PostThread.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }    
+             } // end while
+             if (!success) {
+                 System.out.println("POST error: Failed after max retries in test phase " + testInfo.getEndPhase() + " URL " + requestURL );
+                 results.addEntry(startTime, "POST", HttpResponseCode, 0);
+             }
+             return attempts ;
+         }
+        
+             
+        
+        
+        
+    
     
 }

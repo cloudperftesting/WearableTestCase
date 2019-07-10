@@ -68,11 +68,11 @@ public class CSVResultsWriter implements ResultsWriter{
      *      pre: not null
      */
     @Override
-    public void writeResultsBlock(ThreadRequestLatencies results) {
+    public int  writeResultsBlock(ThreadRequestLatencies results) {
         // check precondition
         if (results == null)
             throw new IllegalArgumentException("Input parameter cannot be null");
-        
+         int lineCount = 0;
         // extract the array of results 
         long threadID = results.getThreadID();
         ArrayList<RequestData> latencies = results.getEntries();
@@ -103,9 +103,7 @@ public class CSVResultsWriter implements ResultsWriter{
         if (errLines.size() > 0) {
             errWriter.writeAll(errLines);        }
         
-        // output summary to screen
-        // System.out.println("Thread: " + threadID + " Average thread latency: " + total/latencies.size()) ;
-        
+        return latencies.size();
         
     }
     
@@ -117,8 +115,11 @@ public class CSVResultsWriter implements ResultsWriter{
     public void terminate(){
         
         try {
+            System.out.println("=============================Closing raw results Files ==========================================");
             bf.close();
             errbf.close();
+
+
             
         } catch (IOException ex) {
             Logger.getLogger(CSVResultsWriter.class.getName()).log(Level.SEVERE, null, ex);
