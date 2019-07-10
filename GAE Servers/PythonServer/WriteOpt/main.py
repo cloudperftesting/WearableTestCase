@@ -9,40 +9,60 @@ class StepRecord(ndb.Model):
     steps = ndb.IntegerProperty(default=0, indexed=False)
     day = ndb.IntegerProperty(default=0, indexed=True)
     userID = ndb.StringProperty(required=True, indexed=True)
+    hour = ndb.IntegerProperty(default=0, indexed=False)
+
+
+class MostRecentDay(ndb.Model):
+    most_recent_day = ndb.IntegerProperty(default=0, indexed=False)
 
 
 class UpdateHandler(webapp2.RequestHandler):
     def post(self, userID, day, hour, step):
         self.response.headers['Content-Type'] = 'text/plain'
-        step = int(step)
-        if int(day) < 0 or int(hour) < 0 or step < 0 or int(hour) > 23 or step > 5000:
+        #print(day,hour,step)
+        if int(day) < 0 or int(hour) < 0 or int(step) < 0 or int(hour)>23 or int(step)>5000:
             self.response.write('invalid number')
             self.response.set_status(400)
-
+        batch = []
         unique_key = userID + '#' + day + '#' + hour
         step_record_key = ndb.Key(StepRecord, unique_key)
-        step_record = StepRecord(key=step_record_key)
-        step_record.steps = step
-        step_record.day = int(day)
-        step_record.userID = userID
-        step_record.put()
+        step_record = StepRecord(key=step_record_key, steps=int(step),userID = userID, day = int(day),hour = int(hour))
+        batch.append(step_record)
+        most_recent_day_key = ndb.Key(MostRecentDay, userID)
+        most_recent_day = most_recent_day_key.get()
+        if most_recent_day is None:
+            recent_day = -1
+        else:
+            recent_day = most_recent_day.most_recent_day
+        if recent_day < int(day):
+            update_record = MostRecentDay(key=most_recent_day_key, most_recent_day = int(day))
+            batch.append(update_record)
+        print batch
+        ndb.put_multi(batch)
+        self.response.write('put successfully')
 
 
 class CurrentDayHandler(webapp2.RequestHandler):
     def get(self, userID):
-        self.response.headers['Content-Type'] = 'text/plain'
-        records = StepRecord.query(StepRecord.userID == userID).fetch()
-        #import pdb
-        #pdb.set_trace()
-        maxDay = 0
+        self.response.headers['Content-Type'] = 'text/plain' 
+        most_recent_day_key = ndb.Key(MostRecentDay, userID)
+        most_recent_day = most_recent_day_key.get()
+        if most_recent_day is None:
+            self.response.write('user {} not found'.format(userID))
+            return
+        msd = most_recent_day.most_recent_day  
+        print msd
+        records = StepRecord.query(StepRecord.userID == userID, StepRecord.day == msd).fetch() 
+        cnt = 0
+        total = 0
+        print records
         for r in records:
-            maxDay = max(maxDay, r.day)
-        sum_steps = 0
-        for r in records:
-            if r.day == maxDay:
-                sum_steps += r.steps
+            total += r.steps
+            cnt += 1
+        if cnt == 0:
+            self.response.write('There is no information for {} on {}'.format(userID, msd)) 
         self.response.write('Total step count on day {} for {} is {}'.format(
-            maxDay, userID, sum_steps))
+            msd, userID, total))
 
 
 class SingleDayHandler(webapp2.RequestHandler):
@@ -63,13 +83,18 @@ class SingleDayHandler(webapp2.RequestHandler):
 
 class RangeDayHandler(webapp2.RequestHandler):
     def get(self, userID, startDay, numDays):
-        startDay = int(startDay)
-        numDays = int(numDays)
-        self.response.headers['Content-Type'] = 'text/plain'
+        most_recent_day_key = ndb.Key(MostRecentDay, userID)
+        most_recent_day = most_recent_day_key.get()
+        recent_day = 0
+        if most_recent_day is None:
+            recent_day = -1
+        else:
+            recent_day = most_recent_day.most_recent_day
+        max_day = min(recent_day + 1, int(startDay) + int(numDays))
         records = StepRecord.query(
-            StepRecord.userID == userID,
-            StepRecord.day >= startDay,
-            StepRecord.day < startDay + numDays).fetch()
+            StepRecord.userID == userID, StepRecord.day >= int(startDay),
+            StepRecord.day < max_day).fetch()
+        self.response.headers['Content-Type'] = 'text/plain'
         if len(records) == 0:
             self.response.write('user {} not found'.format(userID))
             return
@@ -84,7 +109,7 @@ class RangeDayHandler(webapp2.RequestHandler):
 
 
 class DeleteHandler(webapp2.RequestHandler):
-    def delete(self):
+    def post(self):
         self.response.headers['Content-Type'] = 'text/plain'
         ndb.delete_multi(
             StepRecord.query().fetch(keys_only=True)
