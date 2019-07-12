@@ -1,4 +1,4 @@
-package go_server
+package main
 
 import (
 	"fmt"
@@ -19,6 +19,37 @@ func Create(c context.Context, data *StepData) (*StepData, error) {
 	return data, err
 }
 
+func GetRecent(c context.Context, uid string) (int, error) {
+    keyRecentDay := datastore.NewKey(c, recentIndex, uid, 0, nil)
+    var recentDay RecentDay
+    //fmt.Printf(">>>>>>>>>>>>>>>>before=%v", recentDay.mostRecentDay)
+    err := datastore.Get(c, keyRecentDay, &recentDay)
+    //fmt.Printf(">>>>>>>>>>>>>>>>after=%v", recentDay.mostRecentDay)
+    //fmt.Println("Error------------>", err)
+    if err == datastore.ErrNoSuchEntity{
+        return -1, err
+    }
+    //fmt.Printf(">>>>>>>>>>>>>>>>=%v", recentDay.mostRecentDay)
+    return recentDay.MostRecentDay, err
+}
+
+func CreateRecent(c context.Context, uid string, data *RecentDay)(*RecentDay, error){
+    if data == nil {
+        return nil, fmt.Errorf(invalidData)
+    }
+	key := datastore.NewKey(c, recentIndex, uid, 0, nil)
+	_, err := datastore.Put(c, key, data)
+    fmt.Println("Error------------>", err)
+
+    //keyRecentDay := datastore.NewKey(c, recentIndex, uid, 0, nil)
+    //var recentDay RecentDay
+    //err = datastore.Get(c, keyRecentDay, &recentDay)
+    //fmt.Printf(">>>>>>>>>>>>>>>>in create=%v", recentDay.mostRecentDay)
+
+    return data, err
+}
+
+
 func GetDaySteps(c context.Context, uid string, day int) (int, error) {
 	query := datastore.NewQuery(index).Filter("Uid =", uid).Filter("Day =", day)
 	it := query.Run(c)
@@ -33,39 +64,47 @@ func GetDaySteps(c context.Context, uid string, day int) (int, error) {
 		if err != nil {
 			return totalCount, err
 		}
-
 		totalCount += stepData.Count
 	}
 }
 
 func GetCurrentDaySteps(c context.Context, uid string) (int, error) {
-	query := datastore.NewQuery(index).Filter("Uid =", uid)
+    recent, err := GetRecent(c, uid)
+    //fmt.Printf(">>>>>>>>>>>>>>>>=%v", recent)
+
+    if recent == -1 {
+        return -1, err
+    }
+	query := datastore.NewQuery(index).Filter("Uid =", uid).Filter("Day =", recent)
 	it := query.Run(c)
-	maxDay, stepCount := -1, 0
+    totalCount := 0
 
 	for {
 		var stepData StepData
 		_, err := it.Next(&stepData)
+        //fmt.Printf(">>>>>>>>>>>>>>>>=%v", stepData.Count)
 		if err == iterator.Done {
 			//TODO: iterator.Done seems doesn't work
-			return stepCount, nil
+			return totalCount, nil
 		}
 		if err != nil {
-			return stepCount, err
+			return totalCount, err
 		}
-
-		if maxDay < stepData.Day {
-			maxDay, stepCount = stepData.Day, stepData.Count
-		} else if maxDay == stepData.Day {
-			stepCount += stepData.Count
-		}
-	}
-
+        totalCount += stepData.Count
+    }
 }
 
 func GetRangeDaysSteps(c context.Context, uid string, startDay int, numDays int) (int, error) {
+    recent, err := GetRecent(c, uid)
+    if recent == -1 {
+        return -1, err
+    }
+    if recent+1 > startDay+numDays {
+        recent = startDay+numDays-1
+    }
+
 	totalCount := 0
-	for day := startDay; day < startDay+numDays; day++ {
+	for day := startDay; day <= recent; day++ {
 		count, _ := GetDaySteps(c, uid, day)
 		totalCount += count
 	}
