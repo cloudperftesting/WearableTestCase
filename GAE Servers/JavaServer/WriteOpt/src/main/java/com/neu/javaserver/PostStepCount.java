@@ -42,36 +42,61 @@ public class PostStepCount extends HttpServlet {
     @SuppressWarnings("serial")
     protected void processPostRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-        
        
        String URLpath = request.getPathInfo(); 
        response.setContentType("text/plain");
+       // check we have a URL!
        if (URLpath == null) {
             response.getWriter().println("No user/day information - get real dude");
             return;
-        } 
-       
+       } 
+       // check we have the right URL components
         String[] URLparts = URLpath.split("/");
-        if ( URLparts.length  == URL_LEN) {
-            String user = URLparts[USER_POS];
-            String day = URLparts [DAY_POS];
-            String hour = URLparts [HOUR_POS] ;
-            String steps = URLparts [STEP_POS];
-            // User key is a string, rest must be valid integers
-            if ( (Utils.isValidNum(day)) &&  (Utils.isValidNum(hour))  && (Utils.isValidNum(steps))){
-                StepData newStepRecord = new StepData (user, day, hour, steps) ;
-                //this.storeData(newStepRecord );
-                StepDataOneTable.storeData(newStepRecord );
-                response.getWriter().println("User=" + user + " day = " + day + " hour= " + hour + " steps= " + steps);
-            } else {
-                response.setStatus(400);
-                response.getWriter().println("user/day/hour/steps  must be numeric");
-            }
-         } else {
+        if ( URLparts.length  != URL_LEN) {
             response.setStatus(400);
-            response.getWriter().println("malformed URL - get real dude");
+            response.getWriter().println("malformed URL - /userN/dayID/hour/count - eg /user234/4/23/1234");
+            return;
+        }
+        
+        // get the component parts of the URL         
+        // User key is a string, rest must be valid integers
+        String user = URLparts[USER_POS];
+        String day = URLparts [DAY_POS];
+        String hour = URLparts [HOUR_POS] ;
+        String steps = URLparts [STEP_POS];
+
+        //check user key starts with "user" and rest is numeric
+        if (user.length() < 5) {
+            response.setStatus(400);
+            response.getWriter().println("User must be in format userN" );
+            return;
+        }
+        String temp1 = user.substring(0, 4); 
+        String temp2 = user.substring(4, user.length()) ;
+        if ((temp1.equals("user")) && Utils.isValidNum(temp2)) {
+            // we have a valid userID, do nothing. TO DO should invert conditio
+            
+        } else { 
+            response.setStatus(400);
+            response.getWriter().println("User must be in format userN" );
+            return;   
+        }
+            
+        // check rest of URL is numeric                
+        if ( (( !Utils.isValidNum(day)) || !Utils.isValidNum(hour))  || !Utils.isValidNum(steps)){
+            response.setStatus(400);
+            response.getWriter().println("/{userN}/day/hour/steps  must be numeric");
+        } else {
+            // yeah - store in database!
+            StepData newStepRecord = new StepData (user, day, hour, steps) ;
+            //this.storeData(newStepRecord );
+            String key = StepDataWriteOptimized.storeData(newStepRecord );
+            
+            // return results - should return a 204 but just return 200 for testing
+            // response.setStatus(204);
+            response.getWriter().println("User=" + key + " day = " + day + " hour= " + hour + " steps= " + steps);
          }
+
         
     }
 
@@ -101,13 +126,14 @@ public class PostStepCount extends HttpServlet {
         return "Short description";
     }// </editor-fold>
     
-    private void storeData (StepData newStepRecord) {
+    private String storeData (StepData newStepRecord) {
         
         // connect to datastore
         DatastoreService dataStore = DatastoreServiceFactory.getDatastoreService();
         
         //create datastore object
-        String key = newStepRecord.getUser() + "#" + Integer.toString(newStepRecord.getDay()) + Integer.toString(newStepRecord.getHour());
+        String key;
+        key = "user" + newStepRecord.getUser() + "#" + Integer.toString(newStepRecord.getDay()) + Integer.toString(newStepRecord.getHour());
         //Key entityKey = KeyFactory.createKey("StepData", key);
         Entity stepCountEntry = new Entity ("StepData", key);
         //Entity stepCountEntry = new Entity ("StepData");
@@ -121,7 +147,7 @@ public class PostStepCount extends HttpServlet {
         // write to datastore
         dataStore.put(stepCountEntry);
         
-        
+        return key;
         
     }
 

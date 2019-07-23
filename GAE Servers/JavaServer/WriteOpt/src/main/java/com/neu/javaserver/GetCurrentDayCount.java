@@ -37,14 +37,20 @@ public class GetCurrentDayCount extends HttpServlet {
             if ((userID = this.getUserID(URLpath, URL_LEN, USER_POS)) != null) {
                     // TODO add exception handler for database reads
                     //long total = this.readStepCount(userID, DEFAULT_DAY);
-                    long total = StepDataOneTable.readStepCount(userID, DEFAULT_DAY);
-                    response.setStatus(200);
-                    response.getWriter().println("User=" + userID);
-                    response.getWriter().println("URLpath=" + URLpath);
-                    response.getWriter().println("Count: " + total);
+                    long currentDay = StepDataWriteOptimized.getMostRecentDay(userID) ;
+                    if (currentDay != Utils.NO_RESULTS) {
+                        long total = StepDataWriteOptimized.readStepCount(userID, currentDay);
+                        response.setStatus(200);
+                        response.getWriter().println("User=" + userID);
+                        response.getWriter().println("URLpath=" + URLpath);
+                        response.getWriter().println("Count: " + total);
+                    } else {
+                        response.setStatus(204);
+                        response.getWriter().println("No data for this user - yet");
+                    }
             } else {
                 response.setStatus(400);
-                response.getWriter().println("No user - get real dude");
+                response.getWriter().println("URL format invalid: expects /current/userN");
             }
             
         } else {
@@ -54,13 +60,22 @@ public class GetCurrentDayCount extends HttpServlet {
         }
         
   }
-
+  /*
+  * extract "userN" from URL or return null if invalid
+  */
   private  String getUserID(String URLpath, int pathLen, int userPos) {
-      String[] output = URLpath.split("/");
-      if (output.length < pathLen) {
+      String[] userID = URLpath.split("/");
+      if (userID.length < pathLen) {
           return null;
       }
-      return output[userPos];
+      //check user key starts with "user"
+      if (userID[userPos].length() < 5)
+          return null;
+      String temp = userID[userPos].substring(0, 4); 
+      if (temp.equals("user"))
+          return userID[userPos];
+      else 
+          return null ;
   }
   
   private long readStepCount(String userID, int day) {

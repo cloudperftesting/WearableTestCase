@@ -9,7 +9,12 @@ package com.neu.javaserver;
  *
  * @author igortn
  */
+
+
+
 public class Utils {
+    
+    public final static long NO_RESULTS = -1;
     public static boolean isValidNum(String user) {
         try {
             long d = Long.parseLong(user);
