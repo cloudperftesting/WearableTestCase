@@ -6,5 +6,6 @@ const (
 
 //key is uid
 type RecentDay struct {
-    MostRecentDay int `json:"Day"`
+	//Uid   string `json:"Uid"`
+    MostRecentDay int `json:"mostRecentDay"`
 }

@@ -53,7 +53,7 @@ func getCurrentDaySteps(c *gin.Context) {
 	total_count, _ := GetCurrentDaySteps(ctx, uid)
 
     if total_count == -1 {
-	    c.JSON(http.StatusBadRequest, "not valid recent day")
+	    c.JSON(http.StatusOK, "no data yet")
         return
     }
 	c.JSON(http.StatusOK, total_count)

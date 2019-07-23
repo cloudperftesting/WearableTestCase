@@ -3,3 +3,9 @@ api_version: go1
 handlers:
 - url: /.*
   script: _go_app
+automatic_scaling:
+  target_throughput_utilization: 0.6 #default value
+  target_cpu_utilization: 0.6
+  max_concurrent_requests: 10
+  # max_pending_latency: 40ms
+
