@@ -10,6 +10,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  *
  * @author igortn
+ * Entry point for load testing framework
+ * 1) reads property file
+ * 2) loads class that defines test case
+ * 3) runs the test
  */
 public class TestRunner {
     
@@ -22,9 +26,6 @@ public class TestRunner {
     private final static String DEFAULT_KEY_SPACE_SIZE = "10000";
     private final static String DEFAULT_REQUESTS_PER_ITERATION = "1000" ;
 
-    /** Application root URL. TO DO make configurable through properties file */
- //   private final static String BASE_URL = "https://pyserver-208423.appspot.com/";
-    private final static String BASE_URL = "https://pyserver2-neu.appspot.com/";
     // a workload class executes on a signle day, default is day 1. 
     // TODO Need to incorporate a way to specify multiple days in properties file        
     private final static String DEFAULT_DAYNUM = "1";
@@ -79,11 +80,14 @@ public class TestRunner {
                      
         // Get test configuration parameters from properties file
         testConfig = GetTestSpecification (args);
+        // check  URL for server supplied
+        if (baseURLProp == null)
+            throw new IllegalArgumentException("Base URL cannot be null");
          
         System.out.println("Test Configuration is: " + testClassName + System.lineSeparator() +
                             "max threads: " + maxThreads + System.lineSeparator() +
                             "test URL " + baseURLProp + System.lineSeparator() +
-                            "keySPaceSoze " + keySpaceSize + System.lineSeparator() +
+                            "key space size " + keySpaceSize + System.lineSeparator() +
                             "Iterations: " + numRequestsPerHour + System.lineSeparator() +
                             "Output Path: " + outputFilesDir) ;
         // instantiate the specified Workload object
@@ -98,7 +102,7 @@ public class TestRunner {
     }
     
     /*******************************************************************
-     * Creates a new test instance and start the test
+     * Creates a new test instance and starts the test
      * @param args
      * [0] - name of property file to configure the test. requires absolute path name if not in local directory
      */
@@ -112,8 +116,10 @@ public class TestRunner {
     
      /************************************************************************
       * Process test parameters from properties file
-      * @param args: location of properties file
-      * TODO add validation for values from property file
+      * @param args: args[0] = path to property file,
+      * returns TestConfiguration object hat contains the contents of the property file
+      * throws an exception if properties not numeric
+      * 
       */
      private TestConfiguration GetTestSpecification (String[] args) {
          
@@ -132,7 +138,7 @@ public class TestRunner {
             keySpaceSize = Integer.parseInt(configFile.getProperty("keySpace", DEFAULT_KEY_SPACE_SIZE));
             numRequestsPerHour = Integer.parseInt(configFile.getProperty("numRequestsPerIteration", DEFAULT_REQUESTS_PER_ITERATION));
             dayNum = Integer.parseInt(configFile.getProperty("dayNumber", DEFAULT_DAYNUM));
-            baseURLProp = configFile.getProperty("baseURL", BASE_URL);
+            baseURLProp = configFile.getProperty("baseURL", null);
             // use current working directory if output path not specified
             outputFilesDir = configFile.getProperty("outputFileLocation", System.getProperty("user.dir"));
                  

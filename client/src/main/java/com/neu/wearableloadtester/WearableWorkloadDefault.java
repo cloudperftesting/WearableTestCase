@@ -43,14 +43,10 @@ public class WearableWorkloadDefault implements Workload{
     private final static int NUM_GET_THREADS = 10;
     /** Maximum number os steps per hour to use to generate random value     */
     private final static int MAX_STEPS_PER_HOUR = 5000;
-    /** Default file names for results output files
-     * TODO refactor to make paths configurable through properties file
-     */
-   // private final static String DEFAULT_PATH = "c:\\Users\\Public\\nodeServer-RO\\";
 
     // start and end values for each phase TODO improve by combining with testPhases map
     private final int[] testIntervals = {0, 1, 4, 20, 22, 24};
-    //private final int[] testIntervals = {1, 4, 7, 10, 13, 16};
+
     /** Names for 5 test phases */
     private enum TESTPHASE { WARMUP, GROWTH, PEAK, SHRINK, COOLDOWN;} 
     private final Map<TESTPHASE, Integer> testPhases = new EnumMap<>(TESTPHASE.class);

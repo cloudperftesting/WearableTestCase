@@ -155,9 +155,9 @@ public class CSVResultsProcessor implements ResultsProcessor {
             
             testIntervals.entrySet().forEach((Map.Entry<Long, TestInterval> mapData) -> {
                 TestInterval tmp = mapData.getValue();
-                System.out.println("Key : " +mapData.getKey()+ 
-                        "  Value : " + tmp.getRequestCount() + 
-                        " Average: " + tmp.getMean());
+                //System.out.println("Key : " +mapData.getKey()+ 
+                  //      "  Value : " + tmp.getRequestCount() + 
+                   //     " Average: " + tmp.getMean());
                  writer.writeNext(new String[] {Long.toString(mapData.getKey()), 
                          Long.toString(tmp.getRequestCount()), Long.toString(tmp.getMean()) });
               

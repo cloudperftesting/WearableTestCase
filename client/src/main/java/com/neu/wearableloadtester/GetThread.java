@@ -82,6 +82,7 @@ public class GetThread  implements Runnable{
                 // construct URL for request
                 String requestURL = testInfo.getBaseURL() 
                             + "current/" 
+                            + "user"  
                             + Integer.toString(user) ;
                 HttpGet httpGet = new HttpGet(requestURL);
                 
@@ -126,17 +127,27 @@ public class GetThread  implements Runnable{
                     // blunt error handling - we just want success!
                     if (HttpResponseCode >= 200 && HttpResponseCode < 300) {
                         results.addEntry(startTime, "GET", response.getStatusLine().getStatusCode(), endTime - startTime);
-                        //System.out.println("Response code: " + response.getStatusLine());
+
                         HttpEntity entity2 = response.getEntity();
+                        // Getting the response body.
+                        // String responseBody = EntityUtils.toString(response.getEntity());
+                        //System.out.println("GET OK: " + responseBody + " " + HttpResponseCode);
                         // do something useful with the response body
                         // and ensure it is fully consumed
                         EntityUtils.consume(entity2);
                         success = true;
                     } else {
                         // we sleep and retry 
+                        HttpEntity entity2 = response.getEntity();
+                        // Getting the response body.
+                       // String responseBody = EntityUtils.toString(response.getEntity());
+                       // System.out.println("GET ERROR: " + responseBody + " " + HttpResponseCode);
+                        // do something useful with the response body
+                        // and ensure it is fully consumed
+                        EntityUtils.consume(entity2);
                         attempts++;
                         Thread.sleep(backOff * attempts);
-                       //  System.out.println("GET error: " + HttpResponseCode + " retry "  +  attempts);
+                        // System.out.println("GET error: " + HttpResponseCode + " retry "  +  attempts);
                     }
                    
                 }  catch (IOException ex) {
